@@ -30,6 +30,7 @@ cca_nsam_bounds_file = "../block_data/cca_nsam_block_bounds.geojson"
 # nea
 sam_block_file ="/home/itchy/research/geodesy/global_block_comps/sam_blocks/block_data/sam_blocks.geojson"
 sam_fault_file ="/home/itchy/research/geodesy/global_block_comps/sam_blocks/block_data/sam_faults.geojson"
+nsam_tris_file = "/home/itchy/research/geodesy/global_block_comps/sam_blocks/block_data/nsam_tris.geojson"
 
 # glo
 glo_block_file = "/home/itchy/research/geodesy/global_block_comps/global_scale_plates/global_scale_plates.geojson"
@@ -37,6 +38,7 @@ glo_fault_file = "/home/itchy/research/geodesy/global_block_comps/global_scale_p
 glo_slip_rates_file = "/home/itchy/research/geodesy/global_block_comps/global_scale_plates/global_scale_slip_rates.geojson"
 gsrm_vels_file = "/home/itchy/research/geodesy/gsrm/gps/gps_na.geojson"
 midas_vels_file = "/home/itchy/research/cascadia/cascadia_blocks/data/midas_vels.geojson"
+garnier_vels_file = "../geod_data/garnier_et_al_2022_vels_igs08.geojson"
 
 
 @info "joining blocks"
@@ -70,7 +72,7 @@ fault_df, faults, fault_vels = Oiler.IO.process_faults_from_gis_files(
                                             subset_in_bounds=true,
                                             #usd_default=1.,
                                             #lsd_default=4.,
-                                            #e_default=1e5,
+                                            e_default=5.,
                                             #fid_drop="ccaf002",
                                             )
 
@@ -97,26 +99,34 @@ println("n geol slip rates: ", length(geol_slip_rate_vels))
 @info "doing GNSS"
 gsrm_vel_df = Oiler.IO.gis_vec_file_to_df(gsrm_vels_file)
 midas_vel_df = Oiler.IO.gis_vec_file_to_df(midas_vels_file)
+garn_vel_df = Oiler.IO.gis_vec_file_to_df(garnier_vels_file)
 
 gnss_vel_df = vcat(gsrm_vel_df, midas_vel_df, cols=:union)
 
-@time gnss_vels = Oiler.IO.make_vels_from_gnss_and_blocks(gnss_vel_df, block_df;
+@time gsmd_vels = Oiler.IO.make_vels_from_gnss_and_blocks(gnss_vel_df, block_df;
     fix="1111", epsg=102016,
     ve=:e_vel, vn=:n_vel, ee=:e_err, en=:n_err, name=:station
 )
-gnss_vels = gnss_vels
+
+@time garn_vels = Oiler.IO.make_vels_from_gnss_and_blocks(garn_vel_df, block_df;
+    fix="igs08", epsg=102016,
+    ve=:e_vel, vn=:n_vel, ee=:e_rr, en=:n_err, name=:site
+)
+gnss_vels = vcat(gsmd_vels, garn_vels)
 
 println("n gnss vels: ", length(gnss_vels))
 
 @info "doing tris"
 ant_tris = Oiler.IO.tris_from_geojson(JSON.parsefile(ant_tris_file))
 cam_tris = Oiler.IO.tris_from_geojson(JSON.parsefile(cam_tris_file))
+nsam_tris = Oiler.IO.tris_from_geojson(JSON.parsefile(nsam_tris_file))
 
 tris = vcat(cam_tris,
-            ant_tris,
+            #ant_tris,
+            nsam_tris
             )
 
-tris = cam_tris
+#tris = cam_tris
 #tris = []
 
 println("n tris: ", length(tris))
@@ -129,7 +139,7 @@ vels = vcat(fault_vels,
 println("n total vels: ", length(vels))
 vel_groups = Oiler.group_vels_by_fix_mov(vels)
 
-tri_distance_weight = 100.
+tri_distance_weight = 10.
 
 
 @info "Solving"
@@ -168,7 +178,7 @@ show()
 if save_results == true
     Oiler.IO.write_tri_results_to_gj(tris, results,
                                      "../results/cca_tris.geojson",
-                                     name="cca and ant tri results")
+                                     name="cca tri results")
     Oiler.IO.write_fault_results_to_gj(results,
                                        "../results/cca_nsam_faults.geojson",
                                        name="cca_nsam_faults")
