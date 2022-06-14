@@ -27,10 +27,11 @@ cam_tris_file = "/home/itchy/research/geodesy/global_block_comps/subduction/sub_
 cca_bounds_file = "../block_data/cca_block_bounds.geojson"
 cca_nsam_bounds_file = "../block_data/cca_nsam_block_bounds.geojson"
 
-# nea
+# nsam
 sam_block_file ="/home/itchy/research/geodesy/global_block_comps/sam_blocks/block_data/sam_blocks.geojson"
 sam_fault_file ="/home/itchy/research/geodesy/global_block_comps/sam_blocks/block_data/sam_faults.geojson"
 nsam_tris_file = "/home/itchy/research/geodesy/global_block_comps/sam_blocks/block_data/nsam_tris.geojson"
+mora_vels_file = "/home/itchy/research/geodesy/global_block_comps/sam_blocks/block_data/mora_vels.geojson"
 
 # glo
 glo_block_file = "/home/itchy/research/geodesy/global_block_comps/global_scale_plates/global_scale_plates.geojson"
@@ -100,6 +101,7 @@ println("n geol slip rates: ", length(geol_slip_rate_vels))
 gsrm_vel_df = Oiler.IO.gis_vec_file_to_df(gsrm_vels_file)
 midas_vel_df = Oiler.IO.gis_vec_file_to_df(midas_vels_file)
 garn_vel_df = Oiler.IO.gis_vec_file_to_df(garnier_vels_file)
+mora_vel_df = Oiler.IO.gis_vec_file_to_df(mora_vels_file)
 
 gnss_vel_df = vcat(gsrm_vel_df, midas_vel_df, cols=:union)
 
@@ -112,7 +114,15 @@ gnss_vel_df = vcat(gsrm_vel_df, midas_vel_df, cols=:union)
     fix="igs08", epsg=102016,
     ve=:e_vel, vn=:n_vel, ee=:e_rr, en=:n_err, name=:site
 )
-gnss_vels = vcat(gsmd_vels, garn_vels)
+
+@time mora_vels = Oiler.IO.make_vels_from_gnss_and_blocks(mora_vel_df, block_df;
+    fix="itrf14", epsg=102016,
+    ve=:e_vel, vn=:n_vel, ee=:e_err, en=:n_err, name=:station
+)
+gnss_vels = vcat(gsmd_vels, 
+                 garn_vels, 
+                 #mora_vels,
+                 )
 
 println("n gnss vels: ", length(gnss_vels))
 
