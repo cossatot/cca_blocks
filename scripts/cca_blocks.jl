@@ -38,7 +38,7 @@ glo_block_file = "/home/itchy/research/geodesy/global_block_comps/global_scale_p
 glo_fault_file = "/home/itchy/research/geodesy/global_block_comps/global_scale_plates/global_scale_faults.geojson"
 glo_slip_rates_file = "/home/itchy/research/geodesy/global_block_comps/global_scale_plates/global_scale_slip_rates.geojson"
 gsrm_vels_file = "/home/itchy/research/geodesy/gsrm/gps/gps_na.geojson"
-midas_vels_file = "/home/itchy/research/cascadia/cascadia_blocks/data/midas_vels.geojson"
+midas_vels_file = "/home/itchy/research/geodesy/global_block_comps/cascadia_blocks/data/midas_vels.geojson"
 garnier_vels_file = "../geod_data/garnier_et_al_2022_vels_igs08.geojson"
 
 
