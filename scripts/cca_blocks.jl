@@ -21,24 +21,24 @@ cca_block_file = "../block_data/cca_blocks.geojson"
 cca_fault_file = "../block_data/cca_faults.geojson"
 cca_slip_rates_file = "../block_data/cca_geol_slip_rates.geojson"
 
-ant_tris_file = "/home/itchy/research/geodesy/global_block_comps/subduction/sub_tri_meshes/ant_slab2.geojson"
-cam_tris_file = "/home/itchy/research/geodesy/global_block_comps/subduction/sub_tri_meshes/cam_slab2_fine.geojson"
+ant_tris_file = "../../subduction/sub_tri_meshes/ant_slab2.geojson"
+cam_tris_file = "../../subduction/sub_tri_meshes/cam_slab2_fine.geojson"
 
 cca_bounds_file = "../block_data/cca_block_bounds.geojson"
 cca_nsam_bounds_file = "../block_data/cca_nsam_block_bounds.geojson"
 
 # nsam
-sam_block_file ="/home/itchy/research/geodesy/global_block_comps/sam_blocks/block_data/sam_blocks.geojson"
-sam_fault_file ="/home/itchy/research/geodesy/global_block_comps/sam_blocks/block_data/sam_faults.geojson"
-nsam_tris_file = "/home/itchy/research/geodesy/global_block_comps/sam_blocks/block_data/nsam_tris.geojson"
-mora_vels_file = "/home/itchy/research/geodesy/global_block_comps/sam_blocks/block_data/mora_vels.geojson"
+sam_block_file ="../../sam_blocks/block_data/sam_blocks.geojson"
+sam_fault_file ="../../sam_blocks/block_data/sam_faults.geojson"
+nsam_tris_file = "../../sam_blocks/block_data/nsam_tris.geojson"
+mora_vels_file = "../../sam_blocks/block_data/mora_vels.geojson"
 
 # glo
-glo_block_file = "/home/itchy/research/geodesy/global_block_comps/global_scale_plates/global_scale_plates.geojson"
-glo_fault_file = "/home/itchy/research/geodesy/global_block_comps/global_scale_plates/global_scale_faults.geojson"
-glo_slip_rates_file = "/home/itchy/research/geodesy/global_block_comps/global_scale_plates/global_scale_slip_rates.geojson"
-gsrm_vels_file = "/home/itchy/research/geodesy/gsrm/gps/gps_na.geojson"
-midas_vels_file = "/home/itchy/research/geodesy/global_block_comps/cascadia_blocks/data/midas_vels.geojson"
+glo_block_file = "../../global_scale_plates/global_scale_plates.geojson"
+glo_fault_file = "../../global_scale_plates/global_scale_faults.geojson"
+glo_slip_rates_file = "../../global_scale_plates/global_scale_slip_rates.geojson"
+gsrm_vels_file = "../../../gsrm/gps/gps_na.geojson"
+midas_vels_file = "../../cascadia_blocks/data/midas_vels.geojson"
 garnier_vels_file = "../geod_data/garnier_et_al_2022_vels_igs08.geojson"
 
 
@@ -149,7 +149,7 @@ vels = vcat(fault_vels,
 println("n total vels: ", length(vels))
 vel_groups = Oiler.group_vels_by_fix_mov(vels)
 
-tri_distance_weight = 10.
+tri_distance_weight = 5.
 
 
 @info "Solving"
