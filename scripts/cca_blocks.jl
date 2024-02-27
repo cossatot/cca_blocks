@@ -20,6 +20,7 @@ save_results = true
 cca_block_file = "../block_data/cca_blocks.geojson"
 cca_fault_file = "../block_data/cca_faults.geojson"
 cca_slip_rates_file = "../block_data/cca_geol_slip_rates.geojson"
+cam_thrust_file = "../geod_data/cam_thrusts.geojson"
 
 ant_tris_file = "../../subduction/sub_tri_meshes/ant_slab2.geojson"
 cam_tris_file = "../../subduction/sub_tri_meshes/cam_slab2_fine.geojson"
@@ -60,8 +61,9 @@ println("n blocks: ", size(block_df, 1))
 
 @info "culling blocks"
 println("n blocks before ", size(block_df, 1))
-bound_df = Oiler.IO.gis_vec_file_to_df(cca_nsam_bounds_file)
-block_df = Oiler.IO.get_blocks_in_bounds!(block_df, bound_df; epsg=3995)
+#bound_df = Oiler.IO.gis_vec_file_to_df(cca_nsam_bounds_file)
+bound_df = Oiler.IO.gis_vec_file_to_df(cca_bounds_file)
+block_df = Oiler.IO.get_blocks_in_bounds!(block_df, bound_df; epsg=102016)
 println("n blocks after ", size(block_df, 1))
 
 @info "doing faults"
@@ -74,11 +76,39 @@ fault_df, faults, fault_vels = Oiler.IO.process_faults_from_gis_files(
                                             #usd_default=1.,
                                             #lsd_default=4.,
                                             e_default=5.,
-                                            #fid_drop="ccaf002",
+                                            fid_drop=["ccaf999"],
                                             )
 
 println("n faults: ", length(faults))
+
+fault_vels = filter(x->x.fix != "nazca", fault_vels)
+fault_vels = filter(x->x.mov != "nazca", fault_vels)
+#fault_vels = filter(x->x.fix != "cocos", fault_vels)
+#fault_vels = filter(x->x.mov != "cocos", fault_vels)
+#fault_vels = filter(x->x.fix != "c024", fault_vels)
+#fault_vels = filter(x->x.mov != "c024", fault_vels)
+#fault_vels = filter(x->x.fix != "riv", fault_vels)
+#fault_vels = filter(x->x.mov != "riv", fault_vels)
+
 println("n fault vels: ", length(fault_vels))
+
+
+@info "doing non-fault block boundaries"
+@time non_fault_bounds = Oiler.IO.get_non_fault_block_bounds(block_df, faults)
+bound_vels = vcat(map(b->Oiler.Boundaries.boundary_to_vels(b, ee=1.0, en=1.0), 
+                      non_fault_bounds)...)
+
+bound_vels = filter(x->x.fix != "nazca", bound_vels)
+bound_vels = filter(x->x.mov != "nazca", bound_vels)
+bound_vels = filter(x->x.fix != "cocos", bound_vels)
+bound_vels = filter(x->x.mov != "cocos", bound_vels)
+bound_vels = filter(x->x.mov != "c024", bound_vels)
+bound_vels = filter(x->x.fix != "c024", bound_vels)
+#bound_vels = filter(x->x.mov != "riv", bound_vels)
+#bound_vels = filter(x->x.fix != "riv", bound_vels)
+
+println("n non-fault-bound vels: ", length(bound_vels))
+
 
 
 @info "doing geologic slip rates"
@@ -88,12 +118,19 @@ cca_slip_rate_df = Oiler.IO.gis_vec_file_to_df(cca_slip_rates_file)
 geol_slip_rate_df = vcat(glo_slip_rate_df,
                          cca_slip_rate_df,
                          )
+geol_slip_rate_df = cca_slip_rate_df
 
 geol_slip_rate_df, geol_slip_rate_vels = Oiler.IO.make_geol_slip_rate_vels!(
                                             geol_slip_rate_df,
                                             fault_df;
                                             weight=geol_slip_rate_weight
                                             )
+
+
+#geol_slip_rate_vels = filter(x->x.fix != "nazca", geol_slip_rate_vels)
+#geol_slip_rate_vels = filter(x->x.mov != "nazca", geol_slip_rate_vels)
+geol_slip_rate_vels = filter(x->x.fix != "cocos", geol_slip_rate_vels)
+geol_slip_rate_vels = filter(x->x.mov != "cocos", geol_slip_rate_vels)
 
 println("n geol slip rates: ", length(geol_slip_rate_vels))
 
@@ -133,7 +170,7 @@ nsam_tris = Oiler.IO.tris_from_geojson(JSON.parsefile(nsam_tris_file))
 
 tris = vcat(cam_tris,
             #ant_tris,
-            nsam_tris
+            #nsam_tris
             )
 
 #tris = cam_tris
@@ -141,9 +178,23 @@ tris = vcat(cam_tris,
 
 println("n tris: ", length(tris))
 
+@info "doing focal mechanisms"
+cam_thrust_eqs = Oiler.IO.gis_vec_file_to_df(cam_thrust_file)
+cam_thrust_rake_vels = Oiler.IO.make_rake_constraint_vels_from_earthquakes(
+    cam_thrust_eqs; constraint_slip_rate=150.0, constraint_slip_rate_err=500.0,
+    constraint_normal_rate_err=5.0,
+    weight_by_mag=false)
+cam_tri_rake_constraints = Oiler.IO.make_tri_rake_constraints_from_earthquakes(
+    cam_thrust_eqs, tris; constraint_slip_rate=75.0, constraint_slip_rate_err=100.0,
+   weight_by_mag=true)
+
+println("n rake constraint vels: ", length(cam_thrust_rake_vels))
+
 vels = vcat(fault_vels,
+            bound_vels,
             gnss_vels,
-            geol_slip_rate_vels
+            geol_slip_rate_vels,
+            cam_thrust_rake_vels,
             )
 
 println("n total vels: ", length(vels))
@@ -160,6 +211,7 @@ tri_distance_weight = 5.
             tri_distance_weight=tri_distance_weight,
             regularize_tris=true,
             tri_priors=false,
+            tri_rake_constraints=cam_tri_rake_constraints,
             predict_vels=true,
             pred_se=true,
             check_closures=false,
@@ -179,9 +231,9 @@ Oiler.ResultsAnalysis.compare_data_results(results=results,
                                            fault_df=fault_df)
 
 map_fig = Oiler.Plots.plot_results_map(results, vel_groups, faults, tris)
-rates_fig = Oiler.Plots.plot_slip_rate_fig(geol_slip_rate_df, 
-                                           geol_slip_rate_vels, 
-                                           fault_df, results)
+#rates_fig = Oiler.Plots.plot_slip_rate_fig(geol_slip_rate_df, 
+#                                           geol_slip_rate_vels, 
+#                                           fault_df, results)
 
 show()
 
