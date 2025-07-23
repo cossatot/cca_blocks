@@ -12,7 +12,7 @@ using PyPlot
 
 # options
 geol_slip_rate_weight = 2.
-save_results = true
+save_results = false
 
 # load data
 
@@ -178,23 +178,23 @@ tris = vcat(cam_tris,
 
 println("n tris: ", length(tris))
 
-@info "doing focal mechanisms"
-cam_thrust_eqs = Oiler.IO.gis_vec_file_to_df(cam_thrust_file)
-cam_thrust_rake_vels = Oiler.IO.make_rake_constraint_vels_from_earthquakes(
-    cam_thrust_eqs; constraint_slip_rate=150.0, constraint_slip_rate_err=500.0,
-    constraint_normal_rate_err=5.0,
-    weight_by_mag=false)
-cam_tri_rake_constraints = Oiler.IO.make_tri_rake_constraints_from_earthquakes(
-    cam_thrust_eqs, tris; constraint_slip_rate=75.0, constraint_slip_rate_err=100.0,
-   weight_by_mag=true)
-
-println("n rake constraint vels: ", length(cam_thrust_rake_vels))
+#@info "doing focal mechanisms"
+#cam_thrust_eqs = Oiler.IO.gis_vec_file_to_df(cam_thrust_file)
+#cam_thrust_rake_vels = Oiler.IO.make_rake_constraint_vels_from_earthquakes(
+#    cam_thrust_eqs; constraint_slip_rate=150.0, constraint_slip_rate_err=500.0,
+#    constraint_normal_rate_err=5.0,
+#    weight_by_mag=false)
+#cam_tri_rake_constraints = Oiler.IO.make_tri_rake_constraints_from_earthquakes(
+#    cam_thrust_eqs, tris; constraint_slip_rate=75.0, constraint_slip_rate_err=100.0,
+#   weight_by_mag=true)
+#
+#println("n rake constraint vels: ", length(cam_thrust_rake_vels))
 
 vels = vcat(fault_vels,
             bound_vels,
             gnss_vels,
             geol_slip_rate_vels,
-            cam_thrust_rake_vels,
+#            cam_thrust_rake_vels,
             )
 
 println("n total vels: ", length(vels))
@@ -211,9 +211,10 @@ tri_distance_weight = 5.
             tri_distance_weight=tri_distance_weight,
             regularize_tris=true,
             tri_priors=false,
-            tri_rake_constraints=cam_tri_rake_constraints,
+            #tri_rake_constraints=cam_tri_rake_constraints,
             predict_vels=true,
             pred_se=true,
+            stoch_slip_rates=true,
             check_closures=false,
             check_nans=true,
             sparse_lhs=true,
@@ -231,9 +232,9 @@ Oiler.ResultsAnalysis.compare_data_results(results=results,
                                            fault_df=fault_df)
 
 map_fig = Oiler.Plots.plot_results_map(results, vel_groups, faults, tris)
-#rates_fig = Oiler.Plots.plot_slip_rate_fig(geol_slip_rate_df, 
-#                                           geol_slip_rate_vels, 
-#                                           fault_df, results)
+rates_fig = Oiler.Plots.plot_slip_rate_fig(geol_slip_rate_df, 
+                                           geol_slip_rate_vels, 
+                                           fault_df, results)
 
 show()
 
